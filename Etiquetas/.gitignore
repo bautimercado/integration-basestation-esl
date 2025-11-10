@@ -1,0 +1,78 @@
+# ============================================
+# 🐍 Python / FastAPI
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.pdb
+
+# Entornos virtuales
+venv/
+.env/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Archivos de configuración local
+*.sqlite3
+*.db
+*.log
+
+# Archivos de cobertura / tests
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+*.cover
+coverage.xml
+*.pytest_cache/
+
+# ============================================
+# 📦 Dependencias / IDE
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VSCode / PyCharm
+.vscode/
+.idea/
+
+# ============================================
+# 🧰 Herramientas / Build
+# ============================================
+dist/
+build/
+*.egg-info/
+.eggs/
+*.egg
+MANIFEST
+
+# ============================================
+# 🔐 Configuración sensible
+# ============================================
+# Variables de entorno y claves
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ============================================
+# 🧪 Otros (opcional)
+# ============================================
+# Archivos temporales de editor
+*~
+*.swp
+*.swo
+
+# FastAPI auto-generated
+__pycache__/
+*.sqlite
+*.bak
