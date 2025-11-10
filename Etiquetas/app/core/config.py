@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # URL de la base de datos. 
     # Ejemplo para PostgreSQL asíncrono: "postgresql+asyncpg://user:password@localhost/dbname"
     # Usamos un valor default para que la app corra sin .env (con el servicio mock)
-    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/db"
+    DATABASE_URL: str = "mysql+aiomysql://root:root@localhost:3306/etiquetas"
     PROJECT_NAME: str = "FastAPI Backend Boilerplate"
 
     class Config:
