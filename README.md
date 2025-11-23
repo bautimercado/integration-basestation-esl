@@ -54,3 +54,9 @@ Consultar batería de una etiqueta:
 ```bash
 docker compose exec mqtt mosquitto_pub -t "test/device/config" -u "user0001" -P "test0001" -m '{"queueId":3003,"action":1,"deviceType":1,"deviceMac":"0012383B268CE5B0","content":["online","power"]}'
 ```
+
+- Se puede cambiar por `"all"` para consultar toda la información de una ESL. Lo importante siempre va a ser la MAC.
+
+MAC de dos ESL de prueba:
+- 0012383B268CE5B0
+- 5128376281785776
