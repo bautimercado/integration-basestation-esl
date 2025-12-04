@@ -1,104 +1,78 @@
 from PIL import Image, ImageDraw, ImageFont
 import base64
 import json
+import io
 
-# Configuracion del ESl
-# TODO: Ajustar esto a la resolucion y tamaño del ESl real en un .env
-WIDTH = 384
-HEIGHT = 184
-ESL_MAC = "0012383B268CE5B0"
+WIDTH = 384   # width de la etiqueta (propiedad width)
+HEIGHT = 184  # height de la etiqueta (propiedad height)
 
-PRODUCTO_NOMBRE = "Colgante Murano"
-PRODUCTO_TAMANIO = "30cm"
-PRODUCTO_PRECIO = 17500
+# 1) Crear imagen base
+img = Image.new("RGBA", (WIDTH, HEIGHT), (255, 255, 255, 255))
+draw = ImageDraw.Draw(img)
 
-# Preparacion de la imagen
-# Crear una imagen con fondo blanco 
-img = Image.new('RGB', (WIDTH, HEIGHT), color = (255, 255, 255))
-d = ImageDraw.Draw(img)
+# 2) Fuentes
+try:
+    font_title = ImageFont.truetype("arial.ttf", 36)
+    font_text = ImageFont.truetype("arial.ttf", 26)
+    font_price = ImageFont.truetype("arial.ttf", 40)
+except:
+    font_title = ImageFont.load_default()
+    font_text = ImageFont.load_default()
+    font_price = ImageFont.load_default()
 
-# Se puede ajustar el path o usar fuentes personalizadas
-font_bold = ImageFont.load_default().font_variant(size=24)       # Nombre
-font_regular = ImageFont.load_default().font_variant(size=18)    # Tamaño y oferta
-font_price = ImageFont.load_default().font_variant(size=28)      # Precio
+# 3) Dibujar contenido (usá solo blanco / negro / rojo puro)
+draw.text((10, 10), "Colgante Murano", fill=(0, 0, 0, 255), font=font_title)
+draw.text((10, 60), "30cm",            fill=(0, 0, 0, 255), font=font_text)
+draw.text((10, 100), "OFERTA",         fill=(0, 0, 0, 255), font=font_text)
 
-# Dibujar elementos
+# Caja de precio bien roja
+draw.rectangle([(170, 90), (370, 150)], fill=(255, 0, 0, 255))
+draw.text((180, 100), "$18500", fill=(255, 255, 255, 255), font=font_price)
 
-# 1. Nombre del producto
-# TODO: Ajustar las coordenadas segun el diseño del ESl
-d.text((10, 10), PRODUCTO_NOMBRE, fill=(0, 0, 0), font=font_bold)
+# 4) Asegurar formato RGBA
+img = img.convert("RGBA")
+img = img.rotate(90, expand=True)
 
-# 2. Tamaño (negro)
-# TODO: Ajustar las coordenadas (x, y)
-d.text((10, 50), PRODUCTO_TAMANIO, fill=(0, 0, 0), font=font_regular)
+# 5) Obtener buffer ARGB crudo (sin cabecera)
+#rgba = img.tobytes()  # R, G, B, A por pixel
+#argb_bytes = bytearray()
 
-# 3. Texto "OFERTA" (negro)
-# TODO: Ajustar las coordenadas (x, y)
-d.text((10, 85), "OFERTA", fill=(0, 0, 0), font=font_regular)
+buf = io.BytesIO()
+img.save(buf, format="PNG")
+rgba_bytes = buf.getvalue()
 
-# 4. Recuadro rojo para el precio
-# Coordenadas (x1, y1, x2, y2) para el rectángulo.
-# TODO: Ajusta estas coordenadas para el tamaño y posición del recuadro rojo
-red_box_coords = (WIDTH - 150, HEIGHT - 60, WIDTH - 10, HEIGHT - 10) # Ejemplo
-d.rectangle(red_box_coords, fill=(255, 0, 0)) # Rojo opaco
+#for i in range(0, len(rgba), 4):
+#    r, g, b, a = rgba[i:i+4]
+#    argb_bytes += bytes([a, r, g, b])  # A, R, G, B
 
-# 5. Precio dentro del recuadro (blanco)
-price_text = f"${PRODUCTO_PRECIO:,}".replace(",", ".") # Formateo con separador de miles
+# Sanity check: tamaño exacto WIDTH * HEIGHT * 4
+#expected = WIDTH * HEIGHT * 4
+#print("len(argb_bytes) =", len(argb_bytes), "expected =", expected)
 
-# Calcular posición centrada del texto
-bbox = d.textbbox((0, 0), price_text, font=font_price)
-text_width = bbox[2] - bbox[0]
-text_height = bbox[3] - bbox[1]
+# 6) Base64 de los bytes crudos
+b64_data = base64.b64encode(rgba_bytes).decode("utf-8")
 
-box_width = red_box_coords[2] - red_box_coords[0]
-box_height = red_box_coords[3] - red_box_coords[1]
+with open("preview.b64.txt", "w") as f:
+    f.write(b64_data)
 
-text_x = red_box_coords[0] + (box_width - text_width) / 2 - bbox[0]
-text_y = red_box_coords[1] + (box_height - text_height) / 2 - bbox[1]
-
-d.text((text_x, text_y), price_text, fill=(255, 255, 255), font=font_price)
-
-# Convertir la imagen a ARGB 32bit y despues a base64
-# La antena espera ARGB. Pillow trabaja en RGBA, pero la conversion final lo maneja bien
-# Se puede probar a guardar como BMP si el PNG da problemas, pero PNG es mas comun para Base64
-
-from io import BytesIO
-
-img_gray = img.convert('L')
-
-threshold = 128
-img_bw = img_gray.point(lambda x: 255 if x > threshold else 0, mode='1')
-
-img_bw = img_bw.rotate(90, expand=True)
-
-img_bytes_io = BytesIO()
-img_bw.save(img_bytes_io, format='PNG')   # Probar con 'BMP' si hay problemas
-img_bytes = img_bytes_io.getvalue()
-
-base64_str = base64.b64encode(img_bytes).decode('utf-8')
-
-# Preparar el comando MQTT JSON
+# 7) Armar comando MQTT
 mqtt_command = {
-  "queueId": 1002, # Un nuevo ID para esta operación
-  "deviceType": 1,
-  "deviceMac": ESL_MAC,
-  "deviceVersion": "4.2.E", # Dejar este valor, si falla probar con otro
-  "refreshAction": 3,
-  "refreshArea": 1,
-  "content": [
-    {
-      "dataType": 3,
-      "dataRef": base64_str
-    }
-  ]
+    "queueId": 1003,
+    "deviceType": 1,
+    "deviceMac": "0012383B268CE5B0",
+    # Mejor usar la versión real que reportó la etiqueta:
+    "deviceVersion": "4.3.15",
+    "refreshAction": 3,
+    "refreshArea": 1,
+    "content": [
+        {
+            "dataType": 3,
+            "dataRef": b64_data
+        }
+    ]
 }
 
-with open("refresco_precio.json", "w") as f:
+with open("mqtt_command.json", "w") as f:
     json.dump(mqtt_command, f, indent=2)
 
-print(f"JSON del comando guardado en refresco_precio.json para MAC: {ESL_MAC}")
-print("¡Ahora puedes publicarlo con mosquitto_pub!")
-
-# Guarda la imagen generada para ver cómo se ve
-img_bw.save("precio_generado.png")
-print("Imagen generada (precio_generado.png) guardada para revisión visual.")
+print("mqtt_command.json generado.")
