@@ -41,6 +41,9 @@ docker compose exec mqtt mosquitto_sub -t "test/device/config" -u "user0001" -P 
 docker compose exec mqtt mosquitto_sub -t "test/refresh/notify" -u "user0001" -P "test0001" -v
 
 docker compose exec mqtt mosquitto_sub -t "test/refresh/queue" -u "user0001" -P "test0001" -v
+
+# Escuchar en todos
+docker compose exec mqtt mosquitto_sub -t "test/#" -u "user0001" -P "test0001" -v
 ```
 
 Buscar etiquetas:
@@ -60,3 +63,11 @@ docker compose exec mqtt mosquitto_pub -t "test/device/config" -u "user0001" -P 
 MAC de dos ESL de prueba:
 - 0012383B268CE5B0
 - 5128376281785776
+
+Pasos (actuales) para enviar una imagen a la etiqueta:
+
+```bash
+python ./generar_precio.py
+
+cat mqtt_command.json | docker compose exec -T mqtt mosquitto_pub -t "test/refresh/queue" -u "user0001" -P "test0001" -s
+```
