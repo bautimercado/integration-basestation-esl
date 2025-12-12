@@ -1,7 +1,18 @@
 from PIL import Image, ImageDraw, ImageFont
+from paho.mqtt.client import CallbackAPIVersion
 import base64
 import json
 import io
+import time
+import paho.mqtt.client as mqtt
+
+
+BROKER = "shinkansen.proxy.rlwy.net"
+PORT = 58532
+USERNAME = ""
+PASSWORD = ""
+
+TOPIC = "test/refresh/queue"
 
 WIDTH = 384   # width de la etiqueta (propiedad width)
 HEIGHT = 184  # height de la etiqueta (propiedad height)
@@ -26,13 +37,13 @@ except:
     font_price = ImageFont.load_default()
 
 # 3) Dibujar contenido (usá solo blanco / negro / rojo puro)
-draw.text((10, 10), "Capitan del Espacio", fill=(0, 0, 0, 255), font=font_title)
-draw.text((10, 60), "30cm",            fill=(0, 0, 0, 255), font=font_text)
-draw.text((10, 100), "OFERTA",         fill=(0, 0, 0, 255), font=font_text)
+draw.text((10, 10), "Sprite", fill=(0, 0, 0, 255), font=font_title)
+draw.text((10, 60), "50cm",            fill=(0, 0, 0, 255), font=font_text)
+draw.text((10, 100), "OFERTA!",         fill=(0, 0, 0, 255), font=font_text)
 
 # Caja de precio bien roja
 draw.rectangle([(170, 90), (370, 150)], fill=(255, 0, 0, 255))
-draw.text((180, 100), "$18500", fill=(255, 255, 255, 255), font=font_price)
+draw.text((180, 100), "$20000", fill=(255, 255, 255, 255), font=font_price)
 
 # 4) Asegurar formato RGBA
 img = img.convert("RGBA")
@@ -62,7 +73,7 @@ with open("preview.b64.txt", "w") as f:
 
 # 7) Armar comando MQTT
 mqtt_command = {
-    "queueId": 1008,
+    "queueId": int(time.time() * 1000),
     "deviceType": 1,
     "deviceMac": "0012383B268CE5B0",
     # Mejor usar la versión real que reportó la etiqueta:
@@ -81,3 +92,19 @@ with open("mqtt_command.json", "w") as f:
     json.dump(mqtt_command, f, indent=2)
 
 print("mqtt_command.json generado.")
+
+payload = json.dumps(mqtt_command)
+
+client = mqtt.Client(client_id="python-esl-sender", callback_api_version=CallbackAPIVersion.VERSION2)
+
+if USERNAME:
+    client.username_pw_set(USERNAME, PASSWORD)
+
+print(f"Conectando a {BROKER}:{PORT}...")
+client.connect(BROKER, PORT, keepalive=60)
+
+print(f"Publicando comando en {TOPIC}...")
+client.publish(TOPIC, payload, qos=1)
+
+client.disconnect()
+print("Comando publicado y desconectado.")
